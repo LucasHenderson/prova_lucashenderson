@@ -11,10 +11,14 @@ class MeuApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'Usuários e CEP',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primarySwatch: Colors.blue,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
+        primaryColor: Color(0xFF4169E1),
+        scaffoldBackgroundColor: Colors.grey[100],
+        appBarTheme: AppBarTheme(
+          backgroundColor: Color(0xFF4169E1),
+        ),
       ),
       home: TelaListaUsuarios(),
     );
@@ -36,10 +40,14 @@ class _TelaListaUsuariosState extends State<TelaListaUsuarios> {
         'id': usuarioId.toString(),
         'primeiro_nome': primeiroNome,
         'sobrenome': sobrenome,
-        'cep': cep
+        'cep': cep,
       });
       usuarioId++;
     });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Usuário adicionado com sucesso!')),
+    );
   }
 
   void atualizarUsuario(String id, String primeiroNome, String sobrenome, String cep) {
@@ -50,83 +58,66 @@ class _TelaListaUsuariosState extends State<TelaListaUsuarios> {
           'id': id,
           'primeiro_nome': primeiroNome,
           'sobrenome': sobrenome,
-          'cep': cep
+          'cep': cep,
         };
       }
     });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Usuário atualizado com sucesso!')),
+    );
   }
 
   void deletarUsuario(String id) {
     setState(() {
       usuarios.removeWhere((usuario) => usuario['id'] == id);
     });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Usuário removido com sucesso!')),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Lista de Usuários")),
-      body: Center(
+      appBar: AppBar(
+        title: Text("Lista de Usuários"),
+        centerTitle: true,
+      ),
+      body: Container(
+        padding: EdgeInsets.all(16),
         child: usuarios.isEmpty
-            ? Text(
-                "Nenhum usuário cadastrado",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
-              )
-            : Padding(
-                padding: EdgeInsets.all(16.0),
-                child: ListView.builder(
-                  itemCount: usuarios.length,
-                  itemBuilder: (context, index) {
-                    final usuario = usuarios[index];
-                    return Card(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      elevation: 4,
-                      margin: EdgeInsets.symmetric(vertical: 8),
-                      child: ListTile(
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        title: Text(
-                          "${usuario['primeiro_nome']} ${usuario['sobrenome']}",
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Text(
-                          "CEP: ${usuario['cep']}",
-                          style: TextStyle(fontSize: 16, color: Colors.grey[700]),
-                        ),
-                        trailing: Wrap(
-                          spacing: 8,
-                          children: [
-                            IconButton(
-                              icon: Icon(Icons.edit, color: Colors.blue),
-                              onPressed: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => TelaFormularioUsuario(
-                                    aoSalvar: (primeiroNome, sobrenome, cep) =>
-                                        atualizarUsuario(usuario['id']!, primeiroNome, sobrenome, cep),
-                                    usuario: usuario,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            IconButton(
-                              icon: Icon(Icons.delete, color: Colors.red),
-                              onPressed: () => deletarUsuario(usuario['id']!),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
+            ? Center(
+                child: Text(
+                  "Nenhum usuário cadastrado",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
                 ),
+              )
+            : ListView.builder(
+                itemCount: usuarios.length,
+                itemBuilder: (context, index) {
+                  final usuario = usuarios[index];
+                  return ItemList(
+                    usuario: usuario,
+                    aoEditar: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => TelaFormularioUsuario(
+                            aoSalvar: (primeiroNome, sobrenome, cep) =>
+                                atualizarUsuario(usuario['id']!, primeiroNome, sobrenome, cep),
+                            usuario: usuario,
+                          ),
+                        ),
+                      );
+                    },
+                    aoDeletar: () => deletarUsuario(usuario['id']!),
+                  );
+                },
               ),
       ),
       floatingActionButton: FloatingActionButton(
-        child: Icon(Icons.add),
         onPressed: () => Navigator.push(
           context,
           MaterialPageRoute(
@@ -134,6 +125,56 @@ class _TelaListaUsuariosState extends State<TelaListaUsuarios> {
               aoSalvar: adicionarUsuario,
             ),
           ),
+        ),
+        child: Icon(Icons.add),
+        tooltip: 'Adicionar usuário',
+        backgroundColor: Color(0xFF4169E1),
+      ),
+    );
+  }
+}
+
+class ItemList extends StatelessWidget {
+  final Map<String, String> usuario;
+  final VoidCallback aoEditar;
+  final VoidCallback aoDeletar;
+
+  const ItemList({
+    required this.usuario,
+    required this.aoEditar,
+    required this.aoDeletar,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 4,
+      margin: EdgeInsets.symmetric(vertical: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: ListTile(
+        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        title: Text(
+          "${usuario['primeiro_nome']} ${usuario['sobrenome']}",
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        subtitle: Text(
+          "CEP: ${usuario['cep']}",
+          style: TextStyle(color: Colors.grey[700]),
+        ),
+        trailing: Wrap(
+          spacing: 12,
+          children: [
+            IconButton(
+              icon: Icon(Icons.edit, color: Color(0xFF4169E1)),
+              onPressed: aoEditar,
+              tooltip: 'Editar',
+            ),
+            IconButton(
+              icon: Icon(Icons.delete, color: Colors.red),
+              onPressed: aoDeletar,
+              tooltip: 'Excluir',
+            ),
+          ],
         ),
       ),
     );
@@ -152,7 +193,11 @@ class TelaFormularioUsuario extends StatefulWidget {
 
 class _TelaFormularioUsuarioState extends State<TelaFormularioUsuario> {
   final _formKey = GlobalKey<FormState>();
-  final _cepFormatter = MaskTextInputFormatter(mask: "#####-###", filter: {"#": RegExp(r'[0-9]')});
+  final _cepFormatter = MaskTextInputFormatter(
+    mask: "#####-###",
+    filter: {"#": RegExp(r'[0-9]')},
+  );
+
   late String primeiroNome;
   late String sobrenome;
   late String cep;
@@ -193,66 +238,88 @@ class _TelaFormularioUsuarioState extends State<TelaFormularioUsuario> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.usuario == null ? "Adicionar Usuário" : "Editar Usuário")),
-      body: Padding(
-        padding: EdgeInsets.all(16.0),
+      appBar: AppBar(
+        title: Text(widget.usuario == null ? "Adicionar Usuário" : "Editar Usuário"),
+      ),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(16),
         child: Form(
           key: _formKey,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextFormField(
-                decoration: InputDecoration(
-                  labelText: "Primeiro Nome",
-                  border: OutlineInputBorder(),
-                ),
-                initialValue: primeiroNome,
-                onChanged: (value) => primeiroNome = value,
-                validator: (value) => value!.isEmpty ? "Informe o primeiro nome" : null,
+              CampoTexto(
+                label: "Primeiro Nome",
+                valorInicial: primeiroNome,
+                onChanged: (valor) => primeiroNome = valor,
               ),
-              SizedBox(height: 10),
-              TextFormField(
-                decoration: InputDecoration(
-                  labelText: "Sobrenome",
-                  border: OutlineInputBorder(),
-                ),
-                initialValue: sobrenome,
-                onChanged: (value) => sobrenome = value,
-                validator: (value) => value!.isEmpty ? "Informe o sobrenome" : null,
+              SizedBox(height: 12),
+              CampoTexto(
+                label: "Sobrenome",
+                valorInicial: sobrenome,
+                onChanged: (valor) => sobrenome = valor,
               ),
-              SizedBox(height: 10),
-              TextFormField(
-                decoration: InputDecoration(
-                  labelText: "CEP",
-                  border: OutlineInputBorder(),
-                ),
-                initialValue: cep,
-                keyboardType: TextInputType.number,
-                inputFormatters: [_cepFormatter],
-                onChanged: (value) => cep = value,
-                validator: (value) => value!.isEmpty ? "Informe o CEP" : null,
+              SizedBox(height: 12),
+              CampoTexto(
+                label: "CEP",
+                valorInicial: cep,
+                teclado: TextInputType.number,
+                formatter: _cepFormatter,
+                onChanged: (valor) => cep = valor,
               ),
-              SizedBox(height: 20),
-              Center(
-                child: ElevatedButton(
-                  onPressed: () async {
-                    if (_formKey.currentState!.validate()) {
-                      bool valido = await validarCep(cep);
-                      if (valido) {
-                        widget.aoSalvar(primeiroNome, sobrenome, cep);
-                        Navigator.pop(context);
-                      } else {
-                        mostrarAlertaCepInvalido();
-                      }
+              SizedBox(height: 24),
+              ElevatedButton.icon(
+                icon: Icon(Icons.check),
+                label: Text(widget.usuario == null ? "Criar Usuário" : "Atualizar Usuário"),
+                onPressed: () async {
+                  if (_formKey.currentState!.validate()) {
+                    bool valido = await validarCep(cep);
+                    if (valido) {
+                      widget.aoSalvar(primeiroNome, sobrenome, cep);
+                      Navigator.pop(context);
+                    } else {
+                      mostrarAlertaCepInvalido();
                     }
-                  },
-                  child: Text(widget.usuario == null ? "Criar Usuário" : "Atualizar Usuário"),
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF4169E1),
                 ),
-              ),
+              )
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class CampoTexto extends StatelessWidget {
+  final String label;
+  final String valorInicial;
+  final void Function(String)? onChanged;
+  final TextInputType teclado;
+  final MaskTextInputFormatter? formatter;
+
+  const CampoTexto({
+    required this.label,
+    required this.valorInicial,
+    this.onChanged,
+    this.teclado = TextInputType.text,
+    this.formatter,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      initialValue: valorInicial,
+      onChanged: onChanged,
+      keyboardType: teclado,
+      inputFormatters: formatter != null ? [formatter!] : [],
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(),
+      ),
+      validator: (valor) => valor!.isEmpty ? "Informe o $label" : null,
     );
   }
 }
